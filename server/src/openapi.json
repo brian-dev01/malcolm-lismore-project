@@ -1,0 +1,733 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Malcolm Lismore Photography API",
+    "version": "1.0.0",
+    "description": "REST API for the Malcolm Lismore Photography portfolio, contact forms, bookings, and audit dashboard."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "This backend"
+    }
+  ],
+  "tags": [
+    { "name": "Health" },
+    { "name": "Portfolio" },
+    { "name": "Services" },
+    { "name": "Contact and bookings" },
+    { "name": "Audit dashboard" }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Check API health",
+        "responses": {
+          "200": {
+            "description": "API is running",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/portfolio": {
+      "get": {
+        "tags": ["Portfolio"],
+        "summary": "List portfolio images",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "description": "Filter by category slug, for example `weddings`.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Portfolio images; an empty array is returned in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PortfolioListResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/portfolio/featured": {
+      "get": {
+        "tags": ["Portfolio"],
+        "summary": "List featured portfolio images",
+        "responses": {
+          "200": {
+            "description": "Featured images; an empty array is returned in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PortfolioListResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/portfolio/{id}": {
+      "get": {
+        "tags": ["Portfolio"],
+        "summary": "Get a portfolio image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Portfolio image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/PortfolioImage" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/categories": {
+      "get": {
+        "tags": ["Portfolio"],
+        "summary": "List portfolio categories",
+        "responses": {
+          "200": {
+            "description": "Categories; an empty array is returned in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CategoryListResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/services": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "List active photography services",
+        "responses": {
+          "200": {
+            "description": "Active services; an empty array is returned in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ServiceListResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/services/{id}": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "Get a photography service",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Photography service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/Service" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/testimonials": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "List approved testimonials",
+        "responses": {
+          "200": {
+            "description": "Approved testimonials; an empty array is returned in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TestimonialListResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "Get site settings",
+        "responses": {
+          "200": {
+            "description": "Settings keyed by name; an empty object is returned in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/contact": {
+      "post": {
+        "tags": ["Contact and bookings"],
+        "summary": "Submit a contact message",
+        "description": "Limited to 10 submissions per 15-minute window.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactSubmissionInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Contact message accepted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SubmissionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/bookings": {
+      "get": {
+        "tags": ["Contact and bookings"],
+        "summary": "List bookings",
+        "responses": {
+          "200": {
+            "description": "Bookings; an empty array is returned in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingListResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Contact and bookings"],
+        "summary": "Submit a booking request",
+        "description": "Limited to 10 submissions per 15-minute window.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BookingInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking request accepted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SubmissionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimitError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/audit/criteria": {
+      "get": {
+        "tags": ["Audit dashboard"],
+        "summary": "List audit criteria",
+        "parameters": [
+          {
+            "name": "lo",
+            "in": "query",
+            "required": false,
+            "description": "Filter by learning outcome (LO1–LO4).",
+            "schema": { "type": "string", "enum": ["LO1", "LO2", "LO3", "LO4"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit criteria; an empty array is returned in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuditCriteriaResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/audit/summary": {
+      "get": {
+        "tags": ["Audit dashboard"],
+        "summary": "Get audit summary statistics",
+        "responses": {
+          "200": {
+            "description": "Summary statistics; demo mode returns a total of zero.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuditSummaryResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/audit/criteria/{id}": {
+      "patch": {
+        "tags": ["Audit dashboard"],
+        "summary": "Update an audit criterion",
+        "description": "Requires a Supabase access token when Supabase is configured. Authentication is bypassed in demo mode.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AuditCriterionUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated criterion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/AuditCriterion" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/audit/log": {
+      "get": {
+        "tags": ["Audit dashboard"],
+        "summary": "List recent audit fix log entries",
+        "responses": {
+          "200": {
+            "description": "Up to 50 log entries; an empty array is returned in demo mode.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuditLogResponse" }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase access token"
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Request body failed validation.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/FieldValidationError" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing, invalid, or expired bearer token.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Requested resource was not found.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
+      },
+      "RateLimitError": {
+        "description": "Submission rate limit exceeded.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "The request could not be completed.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiError" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "required": ["success"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [false] },
+          "error": { "type": "string" }
+        }
+      },
+      "FieldValidationError": {
+        "type": "object",
+        "required": ["success", "errors"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [false] },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["success", "service", "version", "timestamp"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "service": { "type": "string" },
+          "version": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PortfolioImage": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "image_url": { "type": "string", "format": "uri" },
+          "alt_text": { "type": "string" },
+          "category_id": { "type": "string", "format": "uuid", "nullable": true },
+          "featured": { "type": "boolean" },
+          "width": { "type": "integer", "nullable": true },
+          "height": { "type": "integer", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "categories": { "$ref": "#/components/schemas/Category" }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "sort_order": { "type": "integer" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Service": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "icon": { "type": "string", "nullable": true },
+          "price_from": { "type": "number", "format": "float", "nullable": true },
+          "features": { "type": "array", "items": { "type": "string" } },
+          "sort_order": { "type": "integer" },
+          "active": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Testimonial": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "client_name": { "type": "string" },
+          "role": { "type": "string", "nullable": true },
+          "content": { "type": "string" },
+          "rating": { "type": "integer", "minimum": 1, "maximum": 5, "nullable": true },
+          "avatar_url": { "type": "string", "format": "uri", "nullable": true },
+          "featured": { "type": "boolean" },
+          "approved": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "client_name": { "type": "string" },
+          "client_email": { "type": "string", "format": "email" },
+          "service_id": { "type": "string", "format": "uuid", "nullable": true },
+          "event_date": { "type": "string", "format": "date" },
+          "event_time": { "type": "string", "nullable": true },
+          "location": { "type": "string", "nullable": true },
+          "notes": { "type": "string", "nullable": true },
+          "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "services": {
+            "type": "object",
+            "nullable": true,
+            "properties": { "title": { "type": "string" } }
+          }
+        }
+      },
+      "AuditCriterion": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "learning_outcome": { "type": "string", "example": "LO1" },
+          "criterion_code": { "type": "string", "example": "P1" },
+          "criterion_title": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "status": { "type": "string", "enum": ["not_fixed", "in_progress", "fixed", "passed"] },
+          "priority": { "type": "integer" },
+          "assessor_notes": { "type": "string", "nullable": true },
+          "fix_notes": { "type": "string", "nullable": true },
+          "blocker": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AuditSummary": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "passed": { "type": "integer" },
+          "fixed": { "type": "integer" },
+          "inProgress": { "type": "integer" },
+          "notFixed": { "type": "integer" },
+          "blockers": { "type": "integer" },
+          "completionRate": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "byLO": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "total": { "type": "integer" },
+                "passed": { "type": "integer" },
+                "fixed": { "type": "integer" },
+                "notFixed": { "type": "integer" },
+                "inProgress": { "type": "integer" }
+              }
+            }
+          },
+          "verdict": { "type": "string" }
+        }
+      },
+      "ContactSubmissionInput": {
+        "type": "object",
+        "required": ["full_name", "email", "message"],
+        "properties": {
+          "full_name": { "type": "string", "minLength": 2, "maxLength": 200 },
+          "email": { "type": "string", "format": "email", "maxLength": 254 },
+          "phone": { "type": "string", "maxLength": 20 },
+          "service_type": { "type": "string", "maxLength": 100 },
+          "message": { "type": "string", "minLength": 10, "maxLength": 5000 }
+        }
+      },
+      "BookingInput": {
+        "type": "object",
+        "required": ["client_name", "client_email", "event_date"],
+        "properties": {
+          "client_name": { "type": "string", "minLength": 2, "maxLength": 200 },
+          "client_email": { "type": "string", "format": "email", "maxLength": 254 },
+          "service_id": { "type": "string", "format": "uuid" },
+          "event_date": { "type": "string", "format": "date", "example": "2026-06-15" },
+          "event_time": { "type": "string", "example": "14:30" },
+          "location": { "type": "string", "maxLength": 300 },
+          "notes": { "type": "string", "maxLength": 2000 }
+        }
+      },
+      "AuditCriterionUpdate": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["not_fixed", "in_progress", "fixed", "passed"] },
+          "fix_notes": { "type": "string", "maxLength": 5000 }
+        }
+      },
+      "SubmissionResponse": {
+        "type": "object",
+        "required": ["success", "message", "data"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "message": { "type": "string" },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "PortfolioListResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/PortfolioImage" } }
+        }
+      },
+      "CategoryListResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Category" } }
+        }
+      },
+      "ServiceListResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Service" } }
+        }
+      },
+      "TestimonialListResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Testimonial" } }
+        }
+      },
+      "BookingListResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Booking" } }
+        }
+      },
+      "AuditCriteriaResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/AuditCriterion" } }
+        }
+      },
+      "AuditSummaryResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "$ref": "#/components/schemas/AuditSummary" }
+        }
+      },
+      "AuditLogResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "criterion_id": { "type": "string", "format": "uuid", "nullable": true },
+                "action": { "type": "string" },
+                "before_state": { "type": "string", "nullable": true },
+                "after_state": { "type": "string", "nullable": true },
+                "created_at": { "type": "string", "format": "date-time" },
+                "audit_criteria": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "criterion_code": { "type": "string" },
+                    "criterion_title": { "type": "string" },
+                    "learning_outcome": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
